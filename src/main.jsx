@@ -1,314 +1,45 @@
-import React, { useMemo, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { ArrowRight, Check, Flame, Lock, RotateCcw, Target, Trophy, Zap } from "lucide-react";
-import "./styles.css";
+import React,{useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import './styles.css';
 
-const missions = [
-  {
-    id: 1,
-    title: "Meet the Candle",
-    subtitle: "Learn the four prices",
-    xp: 50,
-    type: "candle",
-    prompt: "Tap the HIGH — the highest price reached during this candle.",
-  },
-  {
-    id: 2,
-    title: "Bull or Bear?",
-    subtitle: "Read candle direction",
-    xp: 60,
-    type: "bullbear",
-    prompt: "Which candles are bullish? Tap every bullish candle.",
-  },
-  {
-    id: 3,
-    title: "Who Won?",
-    subtitle: "Understand open vs. close",
-    xp: 60,
-    type: "winner",
-    prompt: "The candle opened at 20,000 and closed at 20,080. Who controlled it?",
-  },
-  {
-    id: 4,
-    title: "Build the Market",
-    subtitle: "Price moves through time",
-    xp: 70,
-    type: "order",
-    prompt: "Build the sequence from left to right. Tap the oldest candle first, then the next one, until you reach NOW.",
-  },
-  {
-    id: 5,
-    title: "Speed Reader",
-    subtitle: "Read the market at a glance",
-    xp: 75,
-    type: "direction",
-    prompt: "You have 5 seconds. What was price generally doing?",
-  }
+const levels=[
+ {id:1,title:'READ THE MARKET',range:[1,5]},
+ {id:2,title:'LIQUIDITY HUNTER',range:[6,10]},
+ {id:3,title:'THE LIQUIDITY RAID',range:[11,15]}
+];
+const missions=[
+{id:1,level:1,title:'Meet the Candle',type:'choice',question:'Which part of a candle shows the highest price?',options:['Open','Close','High','Low'],answer:'High',explanation:'The High is the highest price reached during that candle. The wick can reach it even when the candle closes somewhere else.'},
+{id:2,level:1,title:'Bull or Bear?',type:'choice',question:'A candle opens at 100 and closes at 108. What is it?',options:['Bullish','Bearish','Doji','Impossible to know'],answer:'Bullish',explanation:'When Close is above Open, buyers pushed price higher during that candle. That makes it bullish.'},
+{id:3,level:1,title:'Who Won?',type:'choice',question:'Open: 20,000. Close: 20,080. Who controlled the candle?',options:['Sellers','Buyers','Nobody','Liquidity'],answer:'Buyers',explanation:'The candle closed above its Open, so buyers won that candle. This does not mean the entire market is bullish.'},
+{id:4,level:1,title:'Put the Market in Order',type:'order',question:'Build the sequence from PAST to NOW.',instruction:'Tap the candles in the order they happened. Start with the oldest candle. Do NOT choose based on green/red color.',cards:['A','B','C','D'],sequence:['C','A','D','B'],explanation:'Price develops through time. Reading PAST → NOW lets you understand what happened before the current candle.'},
+{id:5,level:1,title:'Speed Reader',type:'choice',question:'You briefly see 20 candles. They begin near 100 and finish near 106. The candles are mixed, but more are green than red. What is the overall direction?',options:['Higher','Lower','Sideways','Unknown'],answer:'Higher',explanation:'The ending area is above the starting area. Individual candles can pull back, but the overall move is higher.'},
+{id:6,level:2,title:'Find the High',type:'choice',question:'Which price point is the High of this move?',options:['Top extreme','Middle','Bottom extreme','Open'],answer:'Top extreme',visual:'high',explanation:'High means the highest price reached. Do not use candle color to decide it.'},
+{id:7,level:2,title:'Find the Low',type:'choice',question:'Which price point is the Low of this move?',options:['Top extreme','Middle','Bottom extreme','Close'],answer:'Bottom extreme',visual:'low',explanation:'Low means the lowest price reached. Focus on the actual price extreme.'},
+{id:8,level:2,title:'Equal Highs',type:'choice',question:'Which pair shows Equal Highs?',options:['A + C','B + D','A + D','B + C'],answer:'B + D',visual:'eqhigh',explanation:'Equal Highs are repeated highs around the same price level. Traders may watch the area above them for liquidity.'},
+{id:9,level:2,title:'Equal Lows',type:'choice',question:'Which pair shows Equal Lows?',options:['A + C','B + D','A + D','B + C'],answer:'A + C',visual:'eqlow',explanation:'Equal Lows are repeated lows around the same price level. Traders may watch the area below them for liquidity.'},
+{id:10,level:2,title:'Liquidity or Noise?',type:'choice',question:'Which area gives the clearest liquidity clue?',options:['A: one isolated high','B: three highs near the same level','C: one large green candle','D: the candle with the longest body'],answer:'B: three highs near the same level',visual:'liquidity',explanation:'Liquidity is not simply the highest or lowest candle. Repeated, obvious levels are more meaningful because many traders can see them.'},
+{id:11,level:3,title:'Did Liquidity Get Swept?',type:'choice',question:'Price runs above equal highs and then trades back below them. What happened?',options:['Liquidity sweep','Clean continuation','Nothing happened','FVG formed'],answer:'Liquidity sweep',visual:'sweep',explanation:'Price traded beyond an obvious high and then returned below it. That is the behavior we are training you to recognize as a liquidity sweep.'},
+{id:12,level:3,title:'The Fake Break',type:'choice',question:'Which scenario is more consistent with a liquidity raid?',options:['Breaks the high and keeps expanding higher','Trades above the high, rejects, then returns below it','Moves sideways without touching the high','Drops before reaching the high'],answer:'Trades above the high, rejects, then returns below it',visual:'fake',explanation:'A raid is about what price does after taking the level. A break alone is not enough to call it a reversal.'},
+{id:13,level:3,title:'Judas Swing',type:'choice',question:'At the start of the session, price first runs toward a visible liquidity pool, then reverses sharply. What should you identify first?',options:['Liquidity grab','Entry','Take profit','Random movement'],answer:'Liquidity grab',visual:'judas',explanation:'The first job is to recognize the liquidity event. Do not jump straight to an entry before the market gives evidence.'},
+{id:14,level:3,title:'Patience Test',type:'choice',question:'Price reaches liquidity, but there is no confirmation yet. What is the best process?',options:['Enter immediately','Wait for confirmation','Move the stop wider','Double the risk'],answer:'Wait for confirmation',visual:'patience',explanation:'Reaching liquidity is a location, not automatically an entry. Wait for the market to show the reaction or structure evidence you require.'},
+{id:15,level:3,title:'Choose the Liquidity',type:'choice',question:'Which level is the clearest potential liquidity target?',options:['A single random wick','Two obvious equal highs','A candle body in the middle','A random midpoint'],answer:'Two obvious equal highs',visual:'target',explanation:'Repeated, obvious highs create a clearer pool to monitor than a random price point.'}
 ];
 
-function Candle({ bullish=true, onClick, selected, label }) {
-  return (
-    <button className={`candle-wrap ${selected ? "selected" : ""}`} onClick={onClick} aria-label={label}>
-      <span className={`wick ${bullish ? "up" : "down"}`}></span>
-      <span className={`body ${bullish ? "up" : "down"}`}></span>
-    </button>
-  );
+function MiniChart({kind}){return <div className={'chart '+(kind||'')}><div className="grid"></div><div className="line l1"></div><div className="line l2"></div><div className="line l3"></div><div className="label top">HIGH</div><div className="label bot">LOW</div>{kind==='eqhigh'&&<div className="dots">●────────●</div>}{kind==='eqlow'&&<div className="dots lowdots">●────────●</div>}{kind==='sweep'&&<div className="sweepline">↑ SWEEP ↓</div>}{kind==='judas'&&<div className="judasline">LIQUIDITY → ↘</div>}</div>}
+function App(){
+ const [idx,setIdx]=useState(0),[xp,setXp]=useState(0),[selected,setSelected]=useState(null),[order,setOrder]=useState([]),[done,setDone]=useState(false),[showLevels,setShowLevels]=useState(false);
+ const m=missions[idx]; const lvl=levels.find(l=>idx+1>=l.range[0]&&idx+1<=l.range[1]);
+ function resetMission(){setSelected(null);setOrder([])}
+ function choose(o){if(selected)return;setSelected(o);if(o===m.answer)setXp(x=>x+100)}
+ function tapOrder(c){if(order.includes(c))return; const next=[...order,c]; setOrder(next); if(c!==m.sequence[next.length-1]){setSelected('WRONG');setTimeout(()=>{setSelected(null);setOrder([])},900)} else if(next.length===m.sequence.length){setSelected('CORRECT');setXp(x=>x+100)}}
+ function next(){if(idx===missions.length-1){setDone(true);return}setIdx(i=>i+1);resetMission()}
+ if(done)return <main className="app"><section className="card result"><div className="badge">LEVEL 3 COMPLETE</div><h1>Liquidity Raider</h1><p>You completed the first 15 missions.</p><div className="xp">+{xp} XP</div><button onClick={()=>{setDone(false);setIdx(0);setXp(0);resetMission()}}>Replay</button></section></main>;
+ return <main className="app"><header><div><div className="brand">TRADING LEVELING</div><div className="subtitle">Train your eyes. Level your trading.</div></div><div className="xp">XP {xp}</div></header>
+ <div className="levelbar"><button className="levelbtn" onClick={()=>setShowLevels(!showLevels)}>LEVEL {lvl.id} · {lvl.title} ▾</button>{showLevels&&<div className="levels">{levels.map(l=><div key={l.id} className={l.id===lvl.id?'current':''}>Level {l.id} — {l.title}</div>)}</div>}</div>
+ <section className="progress">{missions.map((x,i)=><span key={x.id} className={i<=idx?'active':''}>{i+1}</span>)}</section>
+ <section className="card"><div className="mission">MISSION {m.id} / 15</div><h1>{m.title}</h1>{m.instruction&&<div className="instruction">🎯 {m.instruction}</div>}{m.visual&&<MiniChart kind={m.visual}/>}<p className="question">{m.question}</p>
+ {m.type==='order'?<div className="orderArea"><div className="ordertrack"><span>PAST</span><div className="arrow"></div><span>NOW</span></div><div className="ordercards">{m.cards.map(c=><button key={c} className={order.includes(c)?'picked':''} onClick={()=>tapOrder(c)}>{c}{order.includes(c)&&<b>{order.indexOf(c)+1}</b>}</button>)}</div></div>:<div className="options">{m.options.map(o=><button key={o} className={selected?(o===m.answer?'correct':o===selected?'wrong':''):''} onClick={()=>choose(o)}>{o}</button>)}</div>}
+ {(selected==='CORRECT'||selected==='WRONG'||(selected&&m.type!=='order'))&&<div className={'feedback '+((selected==='CORRECT'||selected===m.answer)?'good':'bad')}><strong>{(selected==='CORRECT'||selected===m.answer)?'Correct!':'Not quite.'}</strong><p>{m.explanation}</p>{selected!=='WRONG'&&<button onClick={next}>{idx===missions.length-1?'Finish Level':'Next Mission →'}</button>}</div>}
+ </section></main>
 }
-
-function Chart({ mode, onAnswer, answers }) {
-  const candles = useMemo(() => [
-    true, true, false, true, false, false, true, true, true, false,
-    true, false, true, true, false, true, true, false, true, true
-  ], []);
-
-  if (mode === "candle") {
-    return (
-      <div className="single-chart">
-        <div className="price-axis"><span>20,120</span><span>20,060</span><span>20,000</span><span>19,940</span></div>
-        <div className="candle-stage">
-          <Candle bullish onClick={() => onAnswer("correct")} label="High" />
-          <span className="hotspot high">HIGH</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (mode === "bullbear") {
-    return (
-      <div className="chart-grid">
-        {candles.slice(0, 8).map((bull, i) =>
-          <Candle key={i} bullish={bull} selected={answers.includes(i)} onClick={() => onAnswer(i)} label={`Candle ${i+1}`} />
-        )}
-      </div>
-    );
-  }
-
-  if (mode === "winner") {
-    return (
-      <div className="winner-chart">
-        <div className="metric"><span>OPEN</span><strong>20,000</strong></div>
-        <div className="big-candle"><Candle bullish onClick={()=>{}} label="Bullish candle"/></div>
-        <div className="metric"><span>CLOSE</span><strong>20,080</strong></div>
-      </div>
-    );
-  }
-
-  if (mode === "order") {
-    const order = [2,0,3,1];
-    return (
-      <div className="order-zone">
-        <div className="timeline">PAST <span>──────────────</span> NOW</div>
-        <div className="order-instruction">
-          <strong>YOUR JOB</strong>
-          <span>Tap the candles from <b>PAST → NOW</b>.</span>
-          <small>Start with the candle that happened first.</small>
-        </div>
-        <div className="order-cards">
-          {[0,1,2,3].map((n) => {
-            const position = answers.indexOf(n);
-            return (
-              <button key={n} className={`order-card ${position >= 0 ? "chosen" : ""}`} onClick={() => onAnswer(n)} disabled={position >= 0}>
-                {position >= 0 && <span className="order-number">{position + 1}</span>}
-                <span className="order-letter">{["A","B","C","D"][n]}</span>
-                <Candle bullish={[true,false,true,false][n]} />
-              </button>
-            );
-          })}
-        </div>
-        <p className="hint">Each correct tap locks into the timeline. If you choose the wrong candle, you will get an explanation and can try again.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="speed-chart">
-      <div className="speed-label">NQ · 1 MIN · REPLAY</div>
-      <div className="mini-candles">
-        {candles.map((bull,i) => <Candle key={i} bullish={bull} onClick={()=>{}} label={`Market candle ${i+1}`}/>)}
-      </div>
-    </div>
-  );
-}
-
-function App() {
-  const [screen, setScreen] = useState("home");
-  const [missionIndex, setMissionIndex] = useState(0);
-  const [xp, setXp] = useState(0);
-  const [completed, setCompleted] = useState([]);
-  const [feedback, setFeedback] = useState(null);
-  const [answers, setAnswers] = useState([]);
-  const [orderClicks, setOrderClicks] = useState([]);
-
-  const mission = missions[missionIndex];
-
-  function start() {
-    setScreen("mission");
-    setMissionIndex(0);
-    setFeedback(null);
-    setAnswers([]);
-    setOrderClicks([]);
-  }
-
-  function complete(correct=true) {
-    if (!correct) {
-      setFeedback({ok:false, title:"Not quite", text:"Try again. The goal is to understand the market, not just guess."});
-      return;
-    }
-    if (!completed.includes(mission.id)) {
-      setXp(v => v + mission.xp);
-      setCompleted(v => [...v, mission.id]);
-    }
-    setFeedback({ok:true, title:"Nice!", text: mission.id === 1
-      ? "The High is the highest price reached during the candle."
-      : mission.id === 4
-        ? "Perfect. You reconstructed the market from PAST → NOW. Price develops through time, so sequence matters."
-        : "Excellent. Your market vision is improving."});
-  }
-
-  function answer(value) {
-    if (mission.type === "bullbear") {
-      const correct = [0,1,3,6,7];
-      if (!answers.includes(value)) {
-        const next = [...answers, value];
-        setAnswers(next);
-        if (next.length === correct.length) complete(correct.every(x => next.includes(x)));
-      }
-      return;
-    }
-    if (mission.type === "winner") {
-      complete(value === "buyers");
-      return;
-    }
-    if (mission.type === "order") {
-      const correctOrder = [2,0,3,1];
-      const expected = correctOrder[orderClicks.length];
-      if (value !== expected) {
-        setFeedback({
-          ok:false,
-          title:"Not the next candle",
-          text: orderClicks.length === 0
-            ? "Start with the candle that happened first. We read the market from PAST → NOW, not by choosing the highest or lowest candle."
-            : `You already selected ${orderClicks.length} candle${orderClicks.length > 1 ? "s" : ""}. Now choose the candle that came next in time. Think: what happened immediately after your last selection?`
-        });
-        setOrderClicks([]);
-        setAnswers([]);
-        return;
-      }
-      const next = [...orderClicks, value];
-      setOrderClicks(next);
-      setAnswers(next);
-      if (next.length === correctOrder.length) {
-        complete(true);
-      }
-      return;
-    }
-    if (mission.type === "direction") {
-      complete(value === "up");
-      return;
-    }
-    complete(value === "correct");
-  }
-
-  function nextMission() {
-    if (missionIndex < missions.length - 1) {
-      setMissionIndex(v => v + 1);
-      setFeedback(null);
-      setAnswers([]);
-      setOrderClicks([]);
-    } else {
-      setScreen("complete");
-    }
-  }
-
-  const levelProgress = Math.round((completed.length / missions.length) * 100);
-
-  if (screen === "home") return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand"><span className="brand-mark">TL</span><span>TRADING <b>LEVELING</b></span></div>
-        <div className="top-stats"><span><Zap size={15}/> {xp} XP</span><span><Flame size={15}/> {Math.max(0, completed.length)} COMBO</span></div>
-      </header>
-      <main className="home">
-        <section className="hero">
-          <div className="eyebrow">SEASON 01 · THE ROOKIE</div>
-          <h1>Train your eyes.<br/><em>Level your trading.</em></h1>
-          <p>Learn market structure and ICT concepts by playing through real trading decisions — one skill at a time.</p>
-          <button className="primary big" onClick={start}>START TRAINING <ArrowRight size={20}/></button>
-        </section>
-
-        <section className="level-card">
-          <div className="level-head">
-            <div><span className="muted">CURRENT LEVEL</span><h2>01 · READ THE MARKET</h2></div>
-            <div className="level-number">01</div>
-          </div>
-          <div className="progress-line"><span style={{width:`${levelProgress}%`}}/></div>
-          <div className="progress-meta"><span>{completed.length}/5 missions completed</span><span>{levelProgress}%</span></div>
-          <div className="mission-list">
-            {missions.map((m,i)=>(
-              <div key={m.id} className={`mission-row ${completed.includes(m.id) ? "done" : ""}`}>
-                <div className="mission-icon">{completed.includes(m.id) ? <Check size={17}/> : i===0 ? <Target size={17}/> : <Lock size={16}/>}</div>
-                <div><strong>MISSION {String(m.id).padStart(2,"0")} · {m.title}</strong><small>{m.subtitle}</small></div>
-                <span className="mission-xp">+{m.xp} XP</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      </main>
-      <footer>Trading Leveling · Educational game prototype · Not financial advice</footer>
-    </div>
-  );
-
-  if (screen === "complete") return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand"><span className="brand-mark">TL</span><span>TRADING <b>LEVELING</b></span></div>
-        <div className="top-stats"><span><Zap size={15}/> {xp} XP</span></div>
-      </header>
-      <main className="complete">
-        <Trophy size={56}/>
-        <div className="eyebrow">LEVEL COMPLETE</div>
-        <h1>READ THE MARKET</h1>
-        <p>You completed the first five missions and unlocked your first Market Vision score.</p>
-        <div className="score-card"><strong>{xp}</strong><span>XP EARNED</span></div>
-        <button className="primary" onClick={()=>setScreen("home")}>RETURN TO MAP</button>
-      </main>
-    </div>
-  );
-
-  return (
-    <div className="app-shell">
-      <header className="topbar">
-        <button className="brand-button" onClick={()=>setScreen("home")}><div className="brand"><span className="brand-mark">TL</span><span>TRADING <b>LEVELING</b></span></div></button>
-        <div className="top-stats"><span>MISSION {String(mission.id).padStart(2,"0")}/05</span><span><Zap size={15}/> {xp} XP</span></div>
-      </header>
-      <main className="mission-page">
-        <div className="mission-title">
-          <div><span className="eyebrow">LEVEL 01 · READ THE MARKET</span><h1>{mission.title}</h1><p>{mission.subtitle}</p></div>
-          <div className="mission-badge">+{mission.xp} XP</div>
-        </div>
-        <div className="mission-layout">
-          <section className="chart-panel">
-            <div className="chart-top"><span>NQ · SIMULATION</span><span>1 MIN</span></div>
-            <Chart mode={mission.type} onAnswer={answer} answers={answers}/>
-            {mission.type === "winner" && <div className="answer-buttons"><button onClick={()=>answer("buyers")}>🟢 BUYERS</button><button onClick={()=>answer("sellers")}>🔴 SELLERS</button></div>}
-            {mission.type === "direction" && <div className="answer-buttons"><button onClick={()=>answer("up")}>↗ MOVING HIGHER</button><button onClick={()=>answer("down")}>↘ MOVING LOWER</button><button onClick={()=>answer("sideways")}>→ SIDEWAYS</button></div>}
-          </section>
-          <aside className="mission-panel">
-            <div className="question-number">MISSION {String(mission.id).padStart(2,"0")}</div>
-            <h2>{mission.prompt}</h2>
-            <div className="mission-tip"><span>💡</span><p>Take your time. You are training pattern recognition, not predicting the future.</p></div>
-            {feedback && (
-              <div className={`feedback ${feedback.ok ? "good" : "bad"}`}>
-                <div className="feedback-icon">{feedback.ok ? <Check/> : <RotateCcw/>}</div>
-                <div><strong>{feedback.title}</strong><p>{feedback.text}</p></div>
-              </div>
-            )}
-            {feedback?.ok && <button className="primary next" onClick={nextMission}>{missionIndex === missions.length-1 ? "FINISH LEVEL" : "NEXT MISSION"} <ArrowRight size={18}/></button>}
-          </aside>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById('root')).render(<App/>);
