@@ -34,7 +34,7 @@ const missions = [
     subtitle: "Price moves through time",
     xp: 70,
     type: "order",
-    prompt: "Put the candles in chronological order: PAST → NOW.",
+    prompt: "Build the sequence from left to right. Tap the oldest candle first, then the next one, until you reach NOW.",
   },
   {
     id: 5,
@@ -98,15 +98,24 @@ function Chart({ mode, onAnswer, answers }) {
     return (
       <div className="order-zone">
         <div className="timeline">PAST <span>──────────────</span> NOW</div>
-        <div className="order-cards">
-          {[0,1,2,3].map((n) => (
-            <button key={n} className="order-card" onClick={() => onAnswer(n)}>
-              <span>{["A","B","C","D"][n]}</span>
-              <Candle bullish={[true,false,true,false][n]} />
-            </button>
-          ))}
+        <div className="order-instruction">
+          <strong>YOUR JOB</strong>
+          <span>Tap the candles from <b>PAST → NOW</b>.</span>
+          <small>Start with the candle that happened first.</small>
         </div>
-        <p className="hint">Tap the candles in the correct order.</p>
+        <div className="order-cards">
+          {[0,1,2,3].map((n) => {
+            const position = answers.indexOf(n);
+            return (
+              <button key={n} className={`order-card ${position >= 0 ? "chosen" : ""}`} onClick={() => onAnswer(n)} disabled={position >= 0}>
+                {position >= 0 && <span className="order-number">{position + 1}</span>}
+                <span className="order-letter">{["A","B","C","D"][n]}</span>
+                <Candle bullish={[true,false,true,false][n]} />
+              </button>
+            );
+          })}
+        </div>
+        <p className="hint">Each correct tap locks into the timeline. If you choose the wrong candle, you will get an explanation and can try again.</p>
       </div>
     );
   }
@@ -151,7 +160,9 @@ function App() {
     }
     setFeedback({ok:true, title:"Nice!", text: mission.id === 1
       ? "The High is the highest price reached during the candle."
-      : "Excellent. Your market vision is improving."});
+      : mission.id === 4
+        ? "Perfect. You reconstructed the market from PAST → NOW. Price develops through time, so sequence matters."
+        : "Excellent. Your market vision is improving."});
   }
 
   function answer(value) {
@@ -170,9 +181,25 @@ function App() {
     }
     if (mission.type === "order") {
       const correctOrder = [2,0,3,1];
+      const expected = correctOrder[orderClicks.length];
+      if (value !== expected) {
+        setFeedback({
+          ok:false,
+          title:"Not the next candle",
+          text: orderClicks.length === 0
+            ? "Start with the candle that happened first. We read the market from PAST → NOW, not by choosing the highest or lowest candle."
+            : `You already selected ${orderClicks.length} candle${orderClicks.length > 1 ? "s" : ""}. Now choose the candle that came next in time. Think: what happened immediately after your last selection?`
+        });
+        setOrderClicks([]);
+        setAnswers([]);
+        return;
+      }
       const next = [...orderClicks, value];
       setOrderClicks(next);
-      if (next.length === 4) complete(next.every((v,i)=>v===correctOrder[i]));
+      setAnswers(next);
+      if (next.length === correctOrder.length) {
+        complete(true);
+      }
       return;
     }
     if (mission.type === "direction") {

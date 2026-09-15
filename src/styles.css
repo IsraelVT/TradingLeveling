@@ -106,3 +106,23 @@ footer{text-align:center;color:#3e4a60;font-size:10px;padding:20px}
 @media(max-width:600px){
   .hero h1{font-size:43px}.mission-title h1{font-size:30px}.mission-title{align-items:start}.mission-badge{display:none}.chart-grid{padding:90px 25px}.order-zone{padding:70px 20px}.order-cards{gap:6px}.answer-buttons{width:94%;flex-wrap:wrap}.answer-buttons button{padding:11px 12px}.mission-panel{padding:22px}.brand{font-size:11px}
 }
+
+/* Mission 4: chronological market-building interaction */
+.order-instruction {
+  margin: 16px 0 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(110,231,183,.25);
+  border-radius: 14px;
+  background: rgba(110,231,183,.06);
+  display: grid;
+  gap: 4px;
+}
+.order-instruction strong { font-size: 12px; letter-spacing: 1.2px; color: #6ee7b7; }
+.order-instruction span { font-size: 16px; }
+.order-instruction small, .hint { color: #8f99aa; line-height: 1.5; }
+.order-cards { align-items: stretch; }
+.order-card { position: relative; min-height: 150px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
+.order-card.chosen { outline: 2px solid #6ee7b7; background: #17261f; }
+.order-card:disabled { opacity: 1; cursor: default; }
+.order-letter { font-size: 13px; color:#aeb7c7; font-weight:900; }
+.order-number { position:absolute; top:10px; left:10px; width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#6ee7b7; color:#08100c; font-weight:900; }
